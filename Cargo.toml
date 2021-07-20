@@ -1,6 +1,6 @@
 [package]
-name = "xl"
-version = "0.1.0"
+name = "xt"
+version = "0.3.0"
 authors = ["Joshua Toyota <jearsh@gmail.com>"]
 edition = "2018"
 

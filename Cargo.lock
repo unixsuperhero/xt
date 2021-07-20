@@ -7,8 +7,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f173ac3d1a7e3b28003f40de0b5ce7fe2710f9b9dc3fc38664cebee46b3b6527"
 
 [[package]]
-name = "xl"
-version = "0.1.0"
+name = "xt"
+version = "0.3.0"
 dependencies = [
  "slab",
 ]
