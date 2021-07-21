@@ -21,7 +21,7 @@ impl Database {
     }
 
     pub fn insert_cell(&mut self, contents: &String) -> usize {
-        match self.rev_cells.get(contents) {
+        match self.rev_cell_lookup(contents) {
             Some(key) => *key,
             None => {
                 let key = self.cells.insert(contents.to_string());
@@ -29,6 +29,10 @@ impl Database {
                 key
             }
         }
+    }
+
+    pub fn rev_cell_lookup(&self, contents: &String) -> Option<&usize> {
+        self.rev_cells.get(contents)
     }
 
     pub fn table_from_dbl_vec(&mut self, grid: Vec<Vec<String>>) {
@@ -99,64 +103,6 @@ impl Table {
             area,
         }
     }
-
-    pub fn from_dbl_vec(grid: Vec<Vec<String>>) -> Database {
-        //let area = Self::dbl_vec_area(grid);
-        //let mut table_cells: Vec<usize> = Vec::with_capacity(area.row * area.col);
-
-        //for cur_row in grid.iter() {
-        //    let mut cols = 0;
-        //    for cur_cell in cur_row.iter() {
-        //        cols += 1;
-        //        let text = grid[row_idx][col_idx];
-        //        table_cells.push(cells.insert(grid[row_idx].entry(col_idx)
-        //    }
-        //}
-        unimplemented!();
-        //let mut cells = Slab::new();
-        //let mut tables = Slab::new();
-        //let mut columns = Slab::new();
-        //let mut table = Table::new();
-        //let mut metacols = Vec::new();
-
-        //let mut area = Pos { row: 0, col: 0 };
-        //
-        //for (row_idx, row_vec) in grid.iter().enumerate() {
-        //    area = Pos { row: row_idx, ..area };
-
-        //    for (col_idx, col_val) in row_vec.iter().enumerate() {
-        //        // let cell_ref = cells.insert(col_val.clone());
-        //        // let cur_cell = cells.get(cell_ref).unwrap();
-
-        //        if area.col <= col_idx {
-        //            area = Pos { col: col_idx + 1, ..area };
-        //        };
-
-        //        // // originally i used columns.len() <= col_idx,
-        //        // // but i don't think it needs to be that wide of a range
-        //        // if columns.len() == col_idx {
-        //        //     metacols.push(MetaColumn { width: 0, has_data: false });
-        //        // }
-
-        //        // if ! metacols[col_idx].has_data && cur_cell.trim().len() != 0 {
-        //        //     metacols[col_idx].has_data = true;
-        //        // }
-
-        //        // if cur_cell.len() > metacols[col_idx].width {
-        //        //     metacols[col_idx].width = cur_cell.len(); // update the recorded column width
-        //        // }
-        //    }
-        //}
-
-        //let head = tables.insert(Table::new());
-
-        //Database {
-        //    cells,
-        //    tables,
-        //    columns,
-        //    head,
-        //}
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -182,7 +128,48 @@ pub struct Pos {
 
 #[cfg(test)]
 mod test {
-    use crate::database::*;
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        Database::new();
+    }
+
+    #[test]
+    fn test_database_insert_cell() {
+        let mut db = Database::new();
+        let cell1 = db.insert_cell(&String::from("a"));
+
+        assert_eq!(db.cells.len(), 1);
+    }
+
+    #[test]
+    fn test_database_insert_cell_no_dupes() {
+        let mut db = Database::new();
+        let cell1 = db.insert_cell(&String::from("a"));
+        let cell2 = db.insert_cell(&String::from("b"));
+        let cell3 = db.insert_cell(&String::from("c"));
+        let cell4 = db.insert_cell(&String::from("b"));
+
+        assert_ne!(cell1, cell2);
+        assert_ne!(cell1, cell3);
+        assert_eq!(cell2, cell4); // no dupes
+        assert_eq!(db.cells.len(), 3);
+        assert_eq!(db.cells.len(), 3);
+    }
+
+    #[test]
+    fn test_database_rev_cell_lookup() {
+        let mut db = Database::new();
+        let cell1 = db.insert_cell(&String::from("a"));
+        let cell2 = db.insert_cell(&String::from("b"));
+
+        let result = db.rev_cells.get(&String::from("a"));
+        assert_eq!(&cell1, result.unwrap());
+
+        let result = db.rev_cells.get(&String::from("b"));
+        assert_eq!(&cell2, result.unwrap());
+    }
 
     #[test]
     fn test_database_dbl_vec_area() {
