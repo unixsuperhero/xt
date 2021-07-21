@@ -164,10 +164,10 @@ mod test {
         let cell1 = db.insert_cell(&String::from("a"));
         let cell2 = db.insert_cell(&String::from("b"));
 
-        let result = db.rev_cells.get(&String::from("a"));
+        let result = db.rev_cell_lookup(&String::from("a"));
         assert_eq!(&cell1, result.unwrap());
 
-        let result = db.rev_cells.get(&String::from("b"));
+        let result = db.rev_cell_lookup(&String::from("b"));
         assert_eq!(&cell2, result.unwrap());
     }
 
