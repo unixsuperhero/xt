@@ -35,6 +35,13 @@ impl Database {
         self.rev_cells.get(contents)
     }
 
+    pub fn current_table(&self) -> Option<&Table> {
+        match self.head {
+            Some(key) => self.tables.get(key),
+            None => None,
+        }
+    }
+
     pub fn table_from_dbl_vec(&mut self, grid: Vec<Vec<String>>) {
         let area = Database::dbl_vec_area(&grid);
 
@@ -193,7 +200,7 @@ mod test {
         let mut db = Database::new();
         db.table_from_dbl_vec(dblvec);
 
-        let tbl = db.tables.get(db.head.unwrap()).unwrap();
+        let tbl = db.current_table().unwrap();
         assert_eq!(tbl.area, Pos { row: 2, col: 2 });
         assert_eq!(tbl.cells.len(), 4);
 
@@ -213,10 +220,29 @@ mod test {
         let mut db = Database::new();
         db.table_from_dbl_vec(dblvec);
 
-        let tbl = db.tables.get(db.head.unwrap()).unwrap();
+        let tbl = db.current_table().unwrap();
         assert_eq!(tbl.area, Pos { row: 3, col: 4 });
         assert_eq!(tbl.cells.len(), 12);
 
         assert_eq!(db.rev_cells.len(), 7);
+    }
+
+    #[test]
+    fn test_database_current_table() {
+        let dblvec = vec![
+            vec!["a".to_string()],
+            vec!["b".to_string(), "c".to_string()],
+        ];
+        let mut db = Database::new();
+
+        if let Some(_) = db.current_table() {
+            panic!("expected None for db.current_table(), got Some(_)");
+        }
+
+        db.table_from_dbl_vec(dblvec);
+
+        if let None = db.current_table() {
+            panic!("expected table for db.current_table(), got None");
+        }
     }
 }
