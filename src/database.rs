@@ -39,10 +39,19 @@ impl Database {
         let area = Database::dbl_vec_area(&grid);
 
         let mut table_cells = Vec::new();
+        let mut widths = Vec::new();
 
         for row in grid.iter() {
             let mut col_len = 0;
             for col in row.iter() {
+                let cell_len = col.len();
+                if (&widths).len() <= col_len {
+                    widths.push(cell_len);
+                } else {
+                    if widths[col_len] < cell_len {
+                        widths[col_len] = cell_len;
+                    }
+                }
                 let cell = self.insert_cell(col);
                 table_cells.push(cell);
                 col_len += 1;
@@ -55,7 +64,7 @@ impl Database {
             }
         }
 
-        let tbl = Table::from_area_and_cells(area, table_cells);
+        let tbl = Table::from_area_cols_and_cells(area, Column::from_widths(widths), table_cells);
         self.head = Some(self.tables.insert(tbl));
     }
 
@@ -96,10 +105,10 @@ pub struct Table {
 }
 
 impl Table {
-    pub fn from_area_and_cells(area: Pos, cells: Vec<usize>) -> Self {
+    pub fn from_area_cols_and_cells(area: Pos, columns: Vec<Column>, cells: Vec<usize>) -> Self {
         Self {
             cells,
-            columns: vec![Column::new(); area.col],
+            columns,
             area,
         }
     }
@@ -117,6 +126,10 @@ impl Column {
             header: String::from(""),
             width: 0,
         }
+    }
+
+    pub fn from_widths(widths: Vec<usize>) -> Vec<Column> {
+        widths.iter().map(|wid| Self { header: String::from(""), width: *wid } ).collect()
     }
 }
 
