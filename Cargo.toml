@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 slab = "0.4.3"
-# csv = "1.1"
-# encoding = "0.2"
+csv = "1.1"
+encoding = "0.2"
 # crossterm = "0.20"
 # tui = { version = "0.15", default-features = false, features = ['crossterm'] }
