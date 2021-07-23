@@ -1,11 +1,9 @@
 use {
     csv::{
-        ByteRecord,
         ReaderBuilder
     },
     std::{
         io,
-        fs::File,
     },
     encoding::{
         all::UTF_8,
@@ -74,8 +72,8 @@ pub struct CsvLoader {
 
 impl CsvLoader {
     pub fn from_path(path: &String) -> io::Result<Vec<Vec<String>>> {
-        let file = File::open(path)?;
-        let mut rdr = ReaderBuilder::new()
+        //let file = File::open(path)?;
+        let rdr = ReaderBuilder::new()
             .has_headers(false)
             .flexible(true)
             .from_path(path);

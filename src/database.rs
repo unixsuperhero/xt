@@ -20,7 +20,7 @@ impl Database {
         }
     }
 
-    pub fn insert_cell(&mut self, contents: &String) -> usize {
+    pub fn insert_cell(&mut self, contents: &str) -> usize {
         match self.rev_cell_lookup(contents) {
             Some(key) => *key,
             None => {
@@ -31,7 +31,7 @@ impl Database {
         }
     }
 
-    pub fn rev_cell_lookup(&self, contents: &String) -> Option<&usize> {
+    pub fn rev_cell_lookup(&self, contents: &str) -> Option<&usize> {
         self.rev_cells.get(contents)
     }
 
@@ -42,7 +42,7 @@ impl Database {
         }
     }
 
-    pub fn table_from_dbl_vec(&mut self, grid: Vec<Vec<String>>) {
+    pub fn table_from_dbl_vec(&mut self, grid: &[Vec<String>]) {
         let area = Database::dbl_vec_area(&grid);
 
         let mut table_cells = Vec::new();
@@ -52,13 +52,13 @@ impl Database {
             let mut col_len = 0;
             for col in row.iter() {
                 let cell_len = col.len();
+
                 if (&widths).len() <= col_len {
                     widths.push(cell_len);
-                } else {
-                    if widths[col_len] < cell_len {
-                        widths[col_len] = cell_len;
-                    }
+                } else if widths[col_len] < cell_len {
+                    widths[col_len] = cell_len;
                 }
+
                 let cell = self.insert_cell(col);
                 table_cells.push(cell);
                 col_len += 1;
@@ -75,7 +75,7 @@ impl Database {
         self.head = Some(self.tables.insert(tbl));
     }
 
-    fn dbl_vec_area(dblvec: &Vec<Vec<String>>) -> Pos {
+    fn dbl_vec_area(dblvec: &[Vec<String>]) -> Pos {
         let mut rows = 0;
         let mut cols = 0;
 
@@ -83,7 +83,7 @@ impl Database {
             rows += 1;
 
             let mut cur_col = 0;
-            for col in row.iter() {
+            for _col in row.iter() {
                 cur_col += 1;
                 if cur_col > cols {
                     cols += 1;
