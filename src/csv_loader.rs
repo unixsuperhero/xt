@@ -88,5 +88,4 @@ impl CsvLoader {
 
         Ok(raw_table)
     }
-
 }
