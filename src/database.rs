@@ -263,21 +263,47 @@ mod test {
 
     #[test]
     fn test_database_insert_col() {
-        panic!("implement me");
-    }
+        let mut db = Database::new();
 
-    #[test]
-    fn test_database_insert_col_no_dupes() {
-        panic!("implement me");
+        let key = db.insert_col(Column { header: String::from("FNAME"), width: 10 });
+        assert_eq!(key, 0);
+
+        let key = db.insert_col(Column { header: String::from("LNAME"), width: 10 });
+        assert_eq!(key, 1);
+
+        // no dupes
+        let key = db.insert_col(Column { header: String::from("FNAME"), width: 10 });
+        assert_eq!(key, 0);
     }
 
     #[test]
     fn test_database_rev_col_lookup() {
-        panic!("implement me");
+        let mut db = Database::new();
+
+        let key_a = db.insert_col(Column { header: String::from("FNAME"), width: 10 });
+        let key_b = db.insert_col(Column { header: String::from("LNAME"), width: 10 });
+
+        assert_eq!(db.rev_col_lookup(&Column { header: String::from("FNAME"), width: 10 }), Some(&key_a));
+        assert_eq!(db.rev_col_lookup(&Column { header: String::from("LNAME"), width: 10 }), Some(&key_b));
     }
 
     #[test]
     fn test_database_table_from_builder() {
-        panic!("implement me");
+        let mut db = Database::new();
+
+        let mut tb = TableBuilder::new();
+        tb.add_row(vec![String::from("one"), String::from("two"), String::from("three")]);
+        tb.add_row(vec![String::from("a"), String::from("b"), String::from("c"), String::from("d")]);
+        tb.add_row(vec![String::from("onejjcjcjcj c jc"), String::from(""), String::from("thrsdfkjlsdjee")]);
+        tb.add_row(vec![String::from("one"), String::from("two"), String::from("three")]);
+
+        let tab = db.table_from_builder(&tb);
+        assert_eq!(tab, 0);
+
+        let tab = db.table_from_builder(&tb);
+        assert_eq!(tab, 1);
+
+        assert_eq!(db.cells.len(), 10);
+        assert_eq!(db.tables.len(), 2);
     }
 }
