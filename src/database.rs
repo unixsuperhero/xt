@@ -1,23 +1,65 @@
-use {slab::Slab, std::collections::HashMap};
+use {
+    slab::Slab,
+    std::collections::HashMap,
+    crate::app::Pos,
+};
 
 #[derive(Clone, Debug)]
-pub struct Database {
+pub struct Database<'a> {
     cells: Slab<String>,
-    rev_cells: HashMap<String, usize>,
-    tables: Slab<Table>,
+    tables: Slab<Table<'a>>,
     columns: Slab<Column>,
+    rev_cells: HashMap<String, usize>,
+    rev_columns: HashMap<Column, usize>,
     head: Option<usize>,
 }
 
-impl Database {
-    pub fn new() -> Database {
+impl<'a> Database<'a> {
+    pub fn new() -> Database<'static> {
         Database {
             cells: Slab::new(),
-            rev_cells: HashMap::new(),
             tables: Slab::new(),
             columns: Slab::new(),
+            rev_cells: HashMap::new(),
+            rev_columns: HashMap::new(),
             head: None,
         }
+    }
+
+    pub fn table_from_builder(&mut self, tb: &'a TableBuilder) -> usize {
+        let empty_cell = self.insert_cell(&"");
+        let mut cells: Vec<usize> = vec![empty_cell; tb.row_cnt * tb.col_cnt];
+
+        for (r,row) in tb.rows.iter().enumerate() {
+            for (c,cell) in row.iter().enumerate() {
+                let i = (r * tb.col_cnt) + c;
+                let cell_ref = self.insert_cell(&cell[..]);
+                cells[i] = cell_ref;
+            }
+        }
+
+        let mut columns: Vec<&Column> = vec![];
+        for col in tb.cols.iter() {
+            let key = self.insert_col(col.clone());
+            columns.push(col);
+        };
+
+        self.tables.insert(Table { cells, columns, row_cnt: tb.row_cnt, col_cnt: tb.col_cnt })
+    }
+
+    pub fn insert_col(&mut self, col: Column) -> usize {
+        match self.rev_col_lookup(&col) {
+            Some(key) => *key,
+            None => {
+                let key = self.columns.insert(col.clone());
+                self.rev_columns.insert(col, key);
+                key
+            }
+        }
+    }
+
+    pub fn rev_col_lookup(&self, col: &Column) -> Option<&usize> {
+        self.rev_columns.get(col)
     }
 
     pub fn insert_cell(&mut self, contents: &str) -> usize {
@@ -42,38 +84,38 @@ impl Database {
         }
     }
 
-    pub fn table_from_dbl_vec(&mut self, grid: &[Vec<String>]) {
-        let area = Database::dbl_vec_area(&grid);
+    // pub fn table_from_dbl_vec(&mut self, grid: &[Vec<String>]) {
+    //     let area = Database::dbl_vec_area(&grid);
 
-        let mut table_cells = Vec::new();
-        let mut widths = Vec::new();
+    //     let mut table_cells = Vec::new();
+    //     let mut widths = Vec::new();
 
-        for row in grid.iter() {
-            let mut col_len = 0;
-            for col in row.iter() {
-                let cell_len = col.len();
+    //     for row in grid.iter() {
+    //         let mut col_len = 0;
+    //         for col in row.iter() {
+    //             let cell_len = col.len();
 
-                if (&widths).len() <= col_len {
-                    widths.push(cell_len);
-                } else if widths[col_len] < cell_len {
-                    widths[col_len] = cell_len;
-                }
+    //             if (&widths).len() <= col_len {
+    //                 widths.push(cell_len);
+    //             } else if widths[col_len] < cell_len {
+    //                 widths[col_len] = cell_len;
+    //             }
 
-                let cell = self.insert_cell(col);
-                table_cells.push(cell);
-                col_len += 1;
-            }
+    //             let cell = self.insert_cell(col);
+    //             table_cells.push(cell);
+    //             col_len += 1;
+    //         }
 
-            while col_len < area.col {
-                let cell = self.insert_cell(&String::from(""));
-                table_cells.push(cell);
-                col_len += 1;
-            }
-        }
+    //         while col_len < area.col {
+    //             let cell = self.insert_cell(&String::from(""));
+    //             table_cells.push(cell);
+    //             col_len += 1;
+    //         }
+    //     }
 
-        let tbl = Table::from_area_cols_and_cells(area, Column::from_widths(widths), table_cells);
-        self.head = Some(self.tables.insert(tbl));
-    }
+    //     let tbl = Table::from_area_cols_and_cells(area, Column::from_widths(widths), table_cells);
+    //     self.head = Some(self.tables.insert(tbl));
+    // }
 
     fn dbl_vec_area(dblvec: &[Vec<String>]) -> Pos {
         let mut rows = 0;
@@ -105,26 +147,111 @@ pub struct MetaColumn {
 }
 
 #[derive(Clone, Debug)]
-pub struct Table {
-    cells: Vec<usize>,
-    columns: Vec<Column>,
-    area: Pos,
+pub struct TableBuilder {
+    rows: Vec<Vec<String>>,
+    cols: Vec<Column>,
+    row_cnt: usize,
+    col_cnt: usize,
 }
 
-impl Table {
-    pub fn from_area_cols_and_cells(area: Pos, columns: Vec<Column>, cells: Vec<usize>) -> Self {
-        Self {
-            cells,
-            columns,
-            area,
+impl TableBuilder {
+    pub fn new() -> Self {
+        let rows = Vec::new();
+        let cols = Vec::new();
+        let row_cnt = 0;
+        let col_cnt = 0;
+
+        Self { rows, row_cnt, col_cnt, cols }
+    }
+
+    pub fn add_row(&mut self, row: Vec<String>) {
+        for (i, cell) in row.iter().enumerate() {
+            if self.col_cnt <= i {
+                self.col_cnt = i + 1;
+                self.cols.push(Column::new());
+            }
+
+            if cell.len() > self.cols[i].width {
+                self.cols[i].width = cell.len();
+            }
         }
+
+        self.rows.push(row);
+        self.row_cnt += 1;
+    }
+}
+
+#[cfg(test)]
+mod table_builder_tests {
+    use super::*;
+
+    #[test]
+    fn test_tb_new() {
+        let tb = TableBuilder::new();
+        let empty_string_vec: Vec<Vec<String>> = Vec::new();
+        let empty_col_vec: Vec<Column> = Vec::new();
+
+        assert_eq!(tb.rows.len(), empty_string_vec.len());
+        assert_eq!(tb.cols.len(), empty_col_vec.len());
+        assert_eq!(tb.row_cnt, 0);
+        assert_eq!(tb.col_cnt, 0);
+    }
+
+    #[test]
+    fn test_tb_add_row() {
+        let mut tb = TableBuilder::new();
+        tb.add_row(vec![String::from("Hello...eto..."), String::from("Worudo, desho")]);
+
+        assert_eq!(&tb.row_cnt, &1);
+        assert_eq!(&tb.col_cnt, &2);
+
+        tb.add_row(vec![String::from("a"), String::from("bb"), String::from("ccc")]);
+
+        assert_eq!(&tb.row_cnt, &2);
+        assert_eq!(&tb.col_cnt, &3);
+
+        assert_eq!(&tb.cols[0].width, &"Hello...eto...".len());
+        assert_eq!(&tb.cols[1].width, &"Worudo, desho".len());
+        assert_eq!(&tb.cols[2].width, &"ccc".len());
     }
 }
 
 #[derive(Clone, Debug)]
+pub struct Table<'a> {
+    cells: Vec<usize>,
+    columns: Vec<&'a Column>,
+    row_cnt: usize,
+    col_cnt: usize,
+}
+
+// impl Table {
+//     pub fn from_table_builder(tb: &TableBuilder) -> Self {
+//         let size = tb.row_cnt * tb.col_cnt;
+//         let cells: Vec<usize> = vec![];
+// 
+//         for r in tb.row_cnt {
+//             for c in tb.rows[r] {
+//             }
+//         }
+// 
+//         Self {
+//             cells,
+//             columns,
+//             area,
+//         }
+//     }
+// }
+
+#[derive(Clone, Debug, Hash, Eq)]
 pub struct Column {
     header: String,
     width: usize,
+}
+
+impl PartialEq for Column {
+    fn eq(&self, other: &Column) -> bool {
+        self.header == other.header && self.width == other.width
+    }
 }
 
 impl Column {
@@ -138,12 +265,6 @@ impl Column {
     pub fn from_widths(widths: Vec<usize>) -> Vec<Column> {
         widths.iter().map(|wid| Self { header: String::from(""), width: *wid } ).collect()
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Pos {
-    row: usize,
-    col: usize,
 }
 
 #[cfg(test)]
@@ -192,57 +313,77 @@ mod test {
     }
 
     #[test]
-    fn test_database_dbl_vec_area() {
-        let dblvec = vec![
-            vec!["a".to_string()],
-            vec!["b".to_string(), "c".to_string()],
-        ];
-        let mut db = Database::new();
-        db.table_from_dbl_vec(dblvec);
-
-        let tbl = db.current_table().unwrap();
-        assert_eq!(tbl.area, Pos { row: 2, col: 2 });
-        assert_eq!(tbl.cells.len(), 4);
-
-        assert_eq!(db.cells.len(), 4);
-        assert_eq!(db.rev_cells.len(), 4);
-
-        let dblvec = vec![
-            vec!["a".to_string()],
-            vec![
-                "b".to_string(),
-                "c".to_string(),
-                "d".to_string(),
-                "e".to_string(),
-            ],
-            vec!["f".to_string()],
-        ];
-        let mut db = Database::new();
-        db.table_from_dbl_vec(dblvec);
-
-        let tbl = db.current_table().unwrap();
-        assert_eq!(tbl.area, Pos { row: 3, col: 4 });
-        assert_eq!(tbl.cells.len(), 12);
-
-        assert_eq!(db.rev_cells.len(), 7);
+    fn test_database_insert_col() {
+        panic!("implement me");
     }
 
     #[test]
-    fn test_database_current_table() {
-        let dblvec = vec![
-            vec!["a".to_string()],
-            vec!["b".to_string(), "c".to_string()],
-        ];
-        let mut db = Database::new();
-
-        if let Some(_) = db.current_table() {
-            panic!("expected None for db.current_table(), got Some(_)");
-        }
-
-        db.table_from_dbl_vec(dblvec);
-
-        if let None = db.current_table() {
-            panic!("expected table for db.current_table(), got None");
-        }
+    fn test_database_insert_col_no_dupes() {
+        panic!("implement me");
     }
+
+    #[test]
+    fn test_database_rev_col_lookup() {
+        panic!("implement me");
+    }
+
+    #[test]
+    fn test_database_table_from_builder() {
+        panic!("implement me");
+    }
+
+    // #[test]
+    // fn test_database_dbl_vec_area() {
+    //     let dblvec = vec![
+    //         vec!["a".to_string()],
+    //         vec!["b".to_string(), "c".to_string()],
+    //     ];
+    //     let mut db = Database::new();
+    //     db.table_from_dbl_vec(dblvec);
+
+    //     let tbl = db.current_table().unwrap();
+    //     assert_eq!(tbl.area, Pos { row: 2, col: 2 });
+    //     assert_eq!(tbl.cells.len(), 4);
+
+    //     assert_eq!(db.cells.len(), 4);
+    //     assert_eq!(db.rev_cells.len(), 4);
+
+    //     let dblvec = vec![
+    //         vec!["a".to_string()],
+    //         vec![
+    //             "b".to_string(),
+    //             "c".to_string(),
+    //             "d".to_string(),
+    //             "e".to_string(),
+    //         ],
+    //         vec!["f".to_string()],
+    //     ];
+    //     let mut db = Database::new();
+    //     db.table_from_dbl_vec(dblvec);
+
+    //     let tbl = db.current_table().unwrap();
+    //     assert_eq!(tbl.area, Pos { row: 3, col: 4 });
+    //     assert_eq!(tbl.cells.len(), 12);
+
+    //     assert_eq!(db.rev_cells.len(), 7);
+    // }
+
+    // #[test]
+    // fn test_database_current_table() {
+    //     let dblvec = vec![
+    //         vec!["a".to_string()],
+    //         vec!["b".to_string(), "c".to_string()],
+    //     ];
+    //     let mut db = Database::new();
+
+    //     if let Some(_) = db.current_table() {
+    //         panic!("expected None for db.current_table(), got Some(_)");
+    //     }
+
+    //     db.table_from_dbl_vec(dblvec);
+
+    //     if let None = db.current_table() {
+    //         panic!("expected table for db.current_table(), got None");
+    //     }
+    // }
 }

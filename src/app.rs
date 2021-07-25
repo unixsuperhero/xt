@@ -1,10 +1,10 @@
 use crate::database::*;
 
 #[derive(Clone,Debug)]
-pub struct AppState {
+pub struct AppState<'a> {
     cursor: Pos,
     screen_area: Pos,
-    table: Table,
+    table: Table<'a>,
     mode: Mode,
 }
 
@@ -16,4 +16,10 @@ enum Mode {
     VisualRow(Pos, Pos),
     VisualCol(Pos, Pos),
     VisualBlk(Pos, Pos),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Pos {
+    pub row: usize,
+    pub col: usize,
 }
