@@ -108,12 +108,6 @@ impl<'a> Database<'a> {
 }
 
 #[derive(Clone, Debug)]
-pub struct MetaColumn {
-    width: usize,
-    has_data: bool,
-}
-
-#[derive(Clone, Debug)]
 pub struct TableBuilder {
     rows: Vec<Vec<String>>,
     cols: Vec<Column>,
@@ -145,41 +139,6 @@ impl TableBuilder {
 
         self.rows.push(row);
         self.row_cnt += 1;
-    }
-}
-
-#[cfg(test)]
-mod table_builder_tests {
-    use super::*;
-
-    #[test]
-    fn test_tb_new() {
-        let tb = TableBuilder::new();
-        let empty_string_vec: Vec<Vec<String>> = Vec::new();
-        let empty_col_vec: Vec<Column> = Vec::new();
-
-        assert_eq!(tb.rows.len(), empty_string_vec.len());
-        assert_eq!(tb.cols.len(), empty_col_vec.len());
-        assert_eq!(tb.row_cnt, 0);
-        assert_eq!(tb.col_cnt, 0);
-    }
-
-    #[test]
-    fn test_tb_add_row() {
-        let mut tb = TableBuilder::new();
-        tb.add_row(vec![String::from("Hello...eto..."), String::from("Worudo, desho")]);
-
-        assert_eq!(&tb.row_cnt, &1);
-        assert_eq!(&tb.col_cnt, &2);
-
-        tb.add_row(vec![String::from("a"), String::from("bb"), String::from("ccc")]);
-
-        assert_eq!(&tb.row_cnt, &2);
-        assert_eq!(&tb.col_cnt, &3);
-
-        assert_eq!(&tb.cols[0].width, &"Hello...eto...".len());
-        assert_eq!(&tb.cols[1].width, &"Worudo, desho".len());
-        assert_eq!(&tb.cols[2].width, &"ccc".len());
     }
 }
 
@@ -305,5 +264,40 @@ mod test {
 
         assert_eq!(db.cells.len(), 10);
         assert_eq!(db.tables.len(), 2);
+    }
+}
+
+#[cfg(test)]
+mod table_builder_tests {
+    use super::*;
+
+    #[test]
+    fn test_tb_new() {
+        let tb = TableBuilder::new();
+        let empty_string_vec: Vec<Vec<String>> = Vec::new();
+        let empty_col_vec: Vec<Column> = Vec::new();
+
+        assert_eq!(tb.rows.len(), empty_string_vec.len());
+        assert_eq!(tb.cols.len(), empty_col_vec.len());
+        assert_eq!(tb.row_cnt, 0);
+        assert_eq!(tb.col_cnt, 0);
+    }
+
+    #[test]
+    fn test_tb_add_row() {
+        let mut tb = TableBuilder::new();
+        tb.add_row(vec![String::from("Hello...eto..."), String::from("Worudo, desho")]);
+
+        assert_eq!(&tb.row_cnt, &1);
+        assert_eq!(&tb.col_cnt, &2);
+
+        tb.add_row(vec![String::from("a"), String::from("bb"), String::from("ccc")]);
+
+        assert_eq!(&tb.row_cnt, &2);
+        assert_eq!(&tb.col_cnt, &3);
+
+        assert_eq!(&tb.cols[0].width, &"Hello...eto...".len());
+        assert_eq!(&tb.cols[1].width, &"Worudo, desho".len());
+        assert_eq!(&tb.cols[2].width, &"ccc".len());
     }
 }
