@@ -26,26 +26,58 @@ impl<'a> Database<'a> {
         }
     }
 
-    pub fn table_from_builder(&mut self, tb: &'a TableBuilder) -> usize {
-        let empty_cell = self.insert_cell(&"");
-        let mut cells: Vec<usize> = vec![empty_cell; tb.row_cnt * tb.col_cnt];
+    pub fn load_table(&mut self, tb: &'a TableBuilder) -> usize {
+        let mut cell_map: HashMap<usize, usize> = HashMap::new();
 
-        for (r,row) in tb.rows.iter().enumerate() {
-            for (c,cell) in row.iter().enumerate() {
-                let i = (r * tb.col_cnt) + c;
-                let cell_ref = self.insert_cell(&cell[..]);
-                cells[i] = cell_ref;
+        for (cell_val, cell_id) in &tb.rev_cells {
+            cell_map.insert(*cell_id, self.insert_cell(&cell_val));
+        }
+
+        let empty_key = if self.rev_cells.contains_key(&String::from("")) {
+            self.rev_cells[&String::from("")]
+        } else {
+            self.insert_cell(&String::from(""))
+        };
+
+        let mut cells = vec![empty_key; tb.row_cnt * tb.col_cnt];
+
+        for (r, row) in tb.rows.iter().enumerate() {
+            for (c, val) in row.iter().enumerate() {
+                if cell_map.contains_key(val) {
+                    cells[(r * tb.col_cnt) + c] = cell_map[val];
+                }
             }
         }
 
         let mut columns: Vec<&Column> = vec![];
         for col in tb.cols.iter() {
-            let key = self.insert_col(col.clone());
+            self.insert_col(col.clone());
             columns.push(col);
         };
 
         self.tables.insert(Table { cells, columns, row_cnt: tb.row_cnt, col_cnt: tb.col_cnt })
     }
+
+    // pub fn table_from_builder(&mut self, tb: &'a TableBuilder) -> usize {
+    //     let empty_cell = self.insert_cell(&"");
+    //     let mut cells: Vec<usize> = vec![empty_cell; tb.row_cnt * tb.col_cnt];
+
+    //     for (r,row) in tb.rows.iter().enumerate() {
+    //         for (c,cell) in row.iter().enumerate() {
+    //             let i = (r * tb.col_cnt) + c;
+    //             let cell_ref = self.insert_cell(&cell[..]);
+    //             cells[i] = cell_ref;
+    //         }
+    //     }
+
+    //     let mut columns: Vec<&Column> = vec![];
+    //     for col in tb.cols.iter() {
+    //         let key = self.insert_col(col.clone());
+    //         columns.push(col);
+    //     };
+
+    //     self.tables.insert(Table { cells, columns, row_cnt: tb.row_cnt, col_cnt: tb.col_cnt })
+    // }
 
     pub fn insert_col(&mut self, col: Column) -> usize {
         match self.rev_col_lookup(&col) {
@@ -109,7 +141,9 @@ impl<'a> Database<'a> {
 
 #[derive(Clone, Debug)]
 pub struct TableBuilder {
-    rows: Vec<Vec<String>>,
+    cells: Slab<String>,
+    rev_cells: HashMap<String, usize>,
+    rows: Vec<Vec<usize>>,
     cols: Vec<Column>,
     row_cnt: usize,
     col_cnt: usize,
@@ -117,27 +151,40 @@ pub struct TableBuilder {
 
 impl TableBuilder {
     pub fn new() -> Self {
+        let cells = Slab::new();
+        let rev_cells = HashMap::new();
         let rows = Vec::new();
         let cols = Vec::new();
         let row_cnt = 0;
         let col_cnt = 0;
 
-        Self { rows, row_cnt, col_cnt, cols }
+        Self { cells, rev_cells, rows, row_cnt, col_cnt, cols }
     }
 
     pub fn add_row(&mut self, row: Vec<String>) {
-        for (i, cell) in row.iter().enumerate() {
+        let mut new_row: Vec<usize> = vec![];
+        for (i, val) in row.into_iter().enumerate() {
             if self.col_cnt <= i {
                 self.col_cnt = i + 1;
                 self.cols.push(Column::new());
             }
 
-            if cell.len() > self.cols[i].width {
-                self.cols[i].width = cell.len();
+            if val.len() > self.cols[i].width {
+                self.cols[i].width = val.len();
             }
+
+            let key = if self.rev_cells.contains_key(&val) {
+                self.rev_cells[&val]
+            } else {
+                let key = self.cells.insert(val.clone());
+                self.rev_cells.insert(val, key);
+                key
+            };
+
+            new_row.push(key);
         }
 
-        self.rows.push(row);
+        self.rows.push(new_row);
         self.row_cnt += 1;
     }
 }
@@ -246,8 +293,28 @@ mod test {
         assert_eq!(db.rev_col_lookup(&Column { header: String::from("LNAME"), width: 10 }), Some(&key_b));
     }
 
+    // #[test]
+    // fn test_database_table_from_builder() {
+    //     let mut db = Database::new();
+
+    //     let mut tb = TableBuilder::new();
+    //     tb.add_row(vec![String::from("one"), String::from("two"), String::from("three")]);
+    //     tb.add_row(vec![String::from("a"), String::from("b"), String::from("c"), String::from("d")]);
+    //     tb.add_row(vec![String::from("onejjcjcjcj c jc"), String::from(""), String::from("thrsdfkjlsdjee")]);
+    //     tb.add_row(vec![String::from("one"), String::from("two"), String::from("three")]);
+
+    //     let tab = db.table_from_builder(&tb);
+    //     assert_eq!(tab, 0);
+
+    //     let tab = db.table_from_builder(&tb);
+    //     assert_eq!(tab, 1);
+
+    //     assert_eq!(db.cells.len(), 10);
+    //     assert_eq!(db.tables.len(), 2);
+    // }
+
     #[test]
-    fn test_database_table_from_builder() {
+    fn test_database_load_table() {
         let mut db = Database::new();
 
         let mut tb = TableBuilder::new();
@@ -256,14 +323,8 @@ mod test {
         tb.add_row(vec![String::from("onejjcjcjcj c jc"), String::from(""), String::from("thrsdfkjlsdjee")]);
         tb.add_row(vec![String::from("one"), String::from("two"), String::from("three")]);
 
-        let tab = db.table_from_builder(&tb);
-        assert_eq!(tab, 0);
-
-        let tab = db.table_from_builder(&tb);
-        assert_eq!(tab, 1);
-
-        assert_eq!(db.cells.len(), 10);
-        assert_eq!(db.tables.len(), 2);
+        let tab = db.load_table(&tb);
+        assert_eq!(db.tables.len(), 1);
     }
 }
 
