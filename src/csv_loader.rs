@@ -12,6 +12,7 @@ use {
         RawDecoder,
         StringWriter,
     },
+    crate::database::TableBuilder,
 };
 
 fn decode_byte_stream_to_string(
@@ -71,21 +72,40 @@ pub struct CsvLoader {
 }
 
 impl CsvLoader {
-    pub fn from_path(path: &String) -> io::Result<Vec<Vec<String>>> {
+    pub fn from_path(path: &str) -> io::Result<TableBuilder> {
         //let file = File::open(path)?;
         let rdr = ReaderBuilder::new()
             .has_headers(false)
             .flexible(true)
             .from_path(path);
 
-        let mut raw_table: Vec<Vec<String>> = Vec::new();
+        let mut table_builder = TableBuilder::new();
         for res in rdr?.byte_records() {
             let row = res?;
-            raw_table.push(row.iter().map(|cols|
+            table_builder.add_row(row.iter().map(|cols|
                 UTF_8.decode(cols, DECODE_BYTES_TO_STRING).unwrap()
             ).collect());
         }
 
-        Ok(raw_table)
+        Ok(table_builder)
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_csvloader_from_path() {
+        let tb = CsvLoader::from_path("test/simple.csv");
+        match &tb {
+            &Ok(_) => {},
+            _ => panic!("should have successfully loaded the test asset"),
+        };
+
+        let tb = tb.unwrap();
+        assert_eq!(&tb.row_cnt, &5);
+        assert_eq!(&tb.col_cnt, &8);
     }
 }

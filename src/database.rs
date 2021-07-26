@@ -124,8 +124,8 @@ pub struct TableBuilder {
     rev_cells: HashMap<String, usize>,
     rows: Vec<Vec<usize>>,
     cols: Vec<Column>,
-    row_cnt: usize,
-    col_cnt: usize,
+    pub row_cnt: usize,
+    pub col_cnt: usize,
 }
 
 impl TableBuilder {
