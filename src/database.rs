@@ -58,27 +58,6 @@ impl<'a> Database<'a> {
         self.tables.insert(Table { cells, columns, row_cnt: tb.row_cnt, col_cnt: tb.col_cnt })
     }
 
-    // pub fn table_from_builder(&mut self, tb: &'a TableBuilder) -> usize {
-    //     let empty_cell = self.insert_cell(&"");
-    //     let mut cells: Vec<usize> = vec![empty_cell; tb.row_cnt * tb.col_cnt];
-
-    //     for (r,row) in tb.rows.iter().enumerate() {
-    //         for (c,cell) in row.iter().enumerate() {
-    //             let i = (r * tb.col_cnt) + c;
-    //             let cell_ref = self.insert_cell(&cell[..]);
-    //             cells[i] = cell_ref;
-    //         }
-    //     }
-
-    //     let mut columns: Vec<&Column> = vec![];
-    //     for col in tb.cols.iter() {
-    //         let key = self.insert_col(col.clone());
-    //         columns.push(col);
-    //     };
-
-    //     self.tables.insert(Table { cells, columns, row_cnt: tb.row_cnt, col_cnt: tb.col_cnt })
-    // }
-
     pub fn insert_col(&mut self, col: Column) -> usize {
         match self.rev_col_lookup(&col) {
             Some(key) => *key,
@@ -292,26 +271,6 @@ mod test {
         assert_eq!(db.rev_col_lookup(&Column { header: String::from("FNAME"), width: 10 }), Some(&key_a));
         assert_eq!(db.rev_col_lookup(&Column { header: String::from("LNAME"), width: 10 }), Some(&key_b));
     }
-
-    // #[test]
-    // fn test_database_table_from_builder() {
-    //     let mut db = Database::new();
-
-    //     let mut tb = TableBuilder::new();
-    //     tb.add_row(vec![String::from("one"), String::from("two"), String::from("three")]);
-    //     tb.add_row(vec![String::from("a"), String::from("b"), String::from("c"), String::from("d")]);
-    //     tb.add_row(vec![String::from("onejjcjcjcj c jc"), String::from(""), String::from("thrsdfkjlsdjee")]);
-    //     tb.add_row(vec![String::from("one"), String::from("two"), String::from("three")]);
-
-    //     let tab = db.table_from_builder(&tb);
-    //     assert_eq!(tab, 0);
-
-    //     let tab = db.table_from_builder(&tb);
-    //     assert_eq!(tab, 1);
-
-    //     assert_eq!(db.cells.len(), 10);
-    //     assert_eq!(db.tables.len(), 2);
-    // }
 
     #[test]
     fn test_database_load_table() {
