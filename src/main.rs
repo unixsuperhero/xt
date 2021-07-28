@@ -10,12 +10,14 @@ use {
 
 fn main() {
     let mut db = Database::new();
-    println!("db before: {:?}\n", &db);
+    //println!("db before: {:?}\n", &db);
 
-    let tb = CsvLoader::from_path("test/large.csv").unwrap();
-    println!("builder: \r\t{:?}\n", tb);
+    let tb = match std::env::args().nth(1) {
+        Some(file) => CsvLoader::from_path(&file),
+        None => CsvLoader::from_path(&"test/simple.csv"),
+    }.unwrap();
 
     db.load_table(&tb);
-    println!("db after: {:?}\n", &db);
+    //println!("db after: {:?}\n", &db);
 
 }
