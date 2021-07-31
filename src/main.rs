@@ -1,12 +1,9 @@
-mod area;
 mod app;
-mod database;
+mod area;
 mod csv_loader;
+mod database;
 
-use {
-    database::Database,
-    csv_loader::CsvLoader,
-};
+use {csv_loader::CsvLoader, database::Database};
 
 fn main() {
     let mut db = Database::new();
@@ -15,9 +12,9 @@ fn main() {
     let tb = match std::env::args().nth(1) {
         Some(file) => CsvLoader::from_path(&file),
         None => CsvLoader::from_path(&"test/simple.csv"),
-    }.unwrap();
+    }
+    .unwrap();
 
     db.load_table(&tb);
     //println!("db after: {:?}\n", &db);
-
 }
