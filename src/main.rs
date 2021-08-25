@@ -2,6 +2,7 @@ mod app;
 mod area;
 mod csv_loader;
 mod database;
+mod sutoa;
 
 use {csv_loader::CsvLoader, database::Database};
 

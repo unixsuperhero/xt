@@ -1,8 +1,4 @@
-use {
-    slab::Slab,
-    std::collections::HashMap,
-    crate::app::Pos,
-};
+pub use {crate::app::Pos, crate::sutoa::Sutoa, slab::Slab, std::collections::HashMap};
 
 #[derive(Clone, Debug)]
 pub struct Database<'a> {
@@ -53,9 +49,14 @@ impl<'a> Database<'a> {
         for col in tb.cols.iter() {
             self.insert_col(col.clone());
             columns.push(col);
-        };
+        }
 
-        self.tables.insert(Table { cells, columns, row_cnt: tb.row_cnt, col_cnt: tb.col_cnt })
+        self.tables.insert(Table {
+            cells,
+            columns,
+            row_cnt: tb.row_cnt,
+            col_cnt: tb.col_cnt,
+        })
     }
 
     pub fn insert_col(&mut self, col: Column) -> usize {
@@ -137,7 +138,14 @@ impl TableBuilder {
         let row_cnt = 0;
         let col_cnt = 0;
 
-        Self { cells, rev_cells, rows, row_cnt, col_cnt, cols }
+        Self {
+            cells,
+            rev_cells,
+            rows,
+            row_cnt,
+            col_cnt,
+            cols,
+        }
     }
 
     pub fn add_row(&mut self, row: Vec<String>) {
@@ -197,7 +205,13 @@ impl Column {
     }
 
     pub fn from_widths(widths: Vec<usize>) -> Vec<Column> {
-        widths.iter().map(|wid| Self { header: String::from(""), width: *wid } ).collect()
+        widths
+            .iter()
+            .map(|wid| Self {
+                header: String::from(""),
+                width: *wid,
+            })
+            .collect()
     }
 }
 
@@ -250,14 +264,23 @@ mod test {
     fn test_database_insert_col() {
         let mut db = Database::new();
 
-        let key = db.insert_col(Column { header: String::from("FNAME"), width: 10 });
+        let key = db.insert_col(Column {
+            header: String::from("FNAME"),
+            width: 10,
+        });
         assert_eq!(key, 0);
 
-        let key = db.insert_col(Column { header: String::from("LNAME"), width: 10 });
+        let key = db.insert_col(Column {
+            header: String::from("LNAME"),
+            width: 10,
+        });
         assert_eq!(key, 1);
 
         // no dupes
-        let key = db.insert_col(Column { header: String::from("FNAME"), width: 10 });
+        let key = db.insert_col(Column {
+            header: String::from("FNAME"),
+            width: 10,
+        });
         assert_eq!(key, 0);
     }
 
@@ -265,11 +288,29 @@ mod test {
     fn test_database_rev_col_lookup() {
         let mut db = Database::new();
 
-        let key_a = db.insert_col(Column { header: String::from("FNAME"), width: 10 });
-        let key_b = db.insert_col(Column { header: String::from("LNAME"), width: 10 });
+        let key_a = db.insert_col(Column {
+            header: String::from("FNAME"),
+            width: 10,
+        });
+        let key_b = db.insert_col(Column {
+            header: String::from("LNAME"),
+            width: 10,
+        });
 
-        assert_eq!(db.rev_col_lookup(&Column { header: String::from("FNAME"), width: 10 }), Some(&key_a));
-        assert_eq!(db.rev_col_lookup(&Column { header: String::from("LNAME"), width: 10 }), Some(&key_b));
+        assert_eq!(
+            db.rev_col_lookup(&Column {
+                header: String::from("FNAME"),
+                width: 10
+            }),
+            Some(&key_a)
+        );
+        assert_eq!(
+            db.rev_col_lookup(&Column {
+                header: String::from("LNAME"),
+                width: 10
+            }),
+            Some(&key_b)
+        );
     }
 
     #[test]
@@ -277,10 +318,27 @@ mod test {
         let mut db = Database::new();
 
         let mut tb = TableBuilder::new();
-        tb.add_row(vec![String::from("one"), String::from("two"), String::from("three")]);
-        tb.add_row(vec![String::from("a"), String::from("b"), String::from("c"), String::from("d")]);
-        tb.add_row(vec![String::from("onejjcjcjcj c jc"), String::from(""), String::from("thrsdfkjlsdjee")]);
-        tb.add_row(vec![String::from("one"), String::from("two"), String::from("three")]);
+        tb.add_row(vec![
+            String::from("one"),
+            String::from("two"),
+            String::from("three"),
+        ]);
+        tb.add_row(vec![
+            String::from("a"),
+            String::from("b"),
+            String::from("c"),
+            String::from("d"),
+        ]);
+        tb.add_row(vec![
+            String::from("onejjcjcjcj c jc"),
+            String::from(""),
+            String::from("thrsdfkjlsdjee"),
+        ]);
+        tb.add_row(vec![
+            String::from("one"),
+            String::from("two"),
+            String::from("three"),
+        ]);
 
         let tab = db.load_table(&tb);
         assert_eq!(db.tables.len(), 1);
@@ -306,12 +364,19 @@ mod table_builder_tests {
     #[test]
     fn test_tb_add_row() {
         let mut tb = TableBuilder::new();
-        tb.add_row(vec![String::from("Hello...eto..."), String::from("Worudo, desho")]);
+        tb.add_row(vec![
+            String::from("Hello...eto..."),
+            String::from("Worudo, desho"),
+        ]);
 
         assert_eq!(&tb.row_cnt, &1);
         assert_eq!(&tb.col_cnt, &2);
 
-        tb.add_row(vec![String::from("a"), String::from("bb"), String::from("ccc")]);
+        tb.add_row(vec![
+            String::from("a"),
+            String::from("bb"),
+            String::from("ccc"),
+        ]);
 
         assert_eq!(&tb.row_cnt, &2);
         assert_eq!(&tb.col_cnt, &3);
