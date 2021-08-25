@@ -34,10 +34,11 @@ where
     }
 
     pub fn get(&self, key: usize) -> Option<&T> {
-        if key >= self.list.len() {
-            return None;
+        if key < self.list.len() {
+            Some(&self.list[key])
+        } else {
+            None
         }
-        Some(&self.list[key])
     }
 
     pub fn get_key(&self, val: T) -> Option<&usize> {
