@@ -47,11 +47,16 @@ where
         }
         None
     }
+
+    pub fn len(&self) -> usize {
+        self.list.len()
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::database::Column;
 
     #[test]
     fn test_sutoa_new() {
@@ -135,5 +140,51 @@ mod test {
 
         let key = s.get_key("missing string".to_string());
         assert_eq!(key, None);
+    }
+
+    #[test]
+    fn test_sutoa_len() {
+        let mut s: Sutoa<String> = Sutoa::new();
+
+        assert_eq!(s.len(), 0);
+        s.set("my life".to_string());
+        assert_eq!(s.len(), 1);
+        s.set("no life".to_string());
+        assert_eq!(s.len(), 2);
+        s.set("third life".to_string());
+        assert_eq!(s.len(), 3);
+        s.set("my life".to_string());
+        s.set("no life".to_string());
+        s.set("third life".to_string());
+        s.set("no life".to_string());
+        s.set("third life".to_string());
+        s.set("no life".to_string());
+        s.set("third life".to_string());
+        assert_eq!(s.len(), 3);
+    }
+
+    #[test]
+    fn test_sutoa_with_columns_instead_of_strings() {
+        let mut s: Sutoa<Column> = Sutoa::new();
+        assert_eq!(s.len(), 0);
+
+        let col = Column {
+            header: String::from("FIRSTCOL"),
+            width: 10,
+        };
+
+        s.set(col.clone());
+        assert_eq!(s.len(), 1);
+
+        s.set(col);
+        assert_eq!(s.len(), 1);
+
+        let col = Column {
+            header: String::from("FIRSTCOL"),
+            width: 11,
+        };
+
+        s.set(col);
+        assert_eq!(s.len(), 2);
     }
 }

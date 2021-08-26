@@ -186,8 +186,8 @@ pub struct Table<'a> {
 
 #[derive(Clone, Debug, Hash, Eq)]
 pub struct Column {
-    header: String,
-    width: usize,
+    pub header: String,
+    pub width: usize,
 }
 
 impl PartialEq for Column {
@@ -202,6 +202,10 @@ impl Column {
             header: String::from(""),
             width: 0,
         }
+    }
+
+    pub fn header(&mut self, new_header: String) {
+        self.header = new_header;
     }
 
     pub fn from_widths(widths: Vec<usize>) -> Vec<Column> {
@@ -359,6 +363,50 @@ mod table_builder_tests {
         assert_eq!(tb.cols.len(), empty_col_vec.len());
         assert_eq!(tb.row_cnt, 0);
         assert_eq!(tb.col_cnt, 0);
+    }
+
+    #[test]
+    fn test_tb_add_row() {
+        let mut tb = TableBuilder::new();
+        tb.add_row(vec![
+            String::from("Hello...eto..."),
+            String::from("Worudo, desho"),
+        ]);
+
+        assert_eq!(&tb.row_cnt, &1);
+        assert_eq!(&tb.col_cnt, &2);
+
+        tb.add_row(vec![
+            String::from("a"),
+            String::from("bb"),
+            String::from("ccc"),
+        ]);
+
+        assert_eq!(&tb.row_cnt, &2);
+        assert_eq!(&tb.col_cnt, &3);
+
+        assert_eq!(&tb.cols[0].width, &"Hello...eto...".len());
+        assert_eq!(&tb.cols[1].width, &"Worudo, desho".len());
+        assert_eq!(&tb.cols[2].width, &"ccc".len());
+    }
+}
+
+#[cfg(test)]
+mod column_tests {
+    use super::*;
+
+    #[test]
+    fn test_column() {
+        let mut col = Column {
+            header: String::from("FIRSTCOL"),
+            width: 10,
+        };
+
+        assert_eq!(&col.header, &String::from("FIRSTCOL"));
+
+        col.header(String::from("ANOTHER HEADER"));
+
+        assert_eq!(&col.header, &String::from("ANOTHER HEADER"));
     }
 
     #[test]
