@@ -1,4 +1,4 @@
-pub use {crate::app::Pos, crate::sutoa::Sutoa, slab::Slab, std::collections::HashMap};
+pub use {crate::app::Pos, slab::Slab, std::collections::HashMap};
 
 #[derive(Clone, Debug)]
 pub struct Database<'a> {
