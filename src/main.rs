@@ -17,5 +17,5 @@ fn main() {
     .unwrap();
 
     db.load_table(&tb);
-    //println!("db after: {:?}\n", &db);
+    println!("db after: {:?}\n", &db);
 }

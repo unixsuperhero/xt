@@ -5,7 +5,6 @@ pub struct Database<'a> {
     cells: Slab<String>,
     tables: Slab<Table<'a>>,
     columns: Slab<Column>,
-    rev_cells: HashMap<String, usize>,
     rev_columns: HashMap<Column, usize>,
     head: Option<usize>,
 }
@@ -16,32 +15,19 @@ impl<'a> Database<'a> {
             cells: Slab::new(),
             tables: Slab::new(),
             columns: Slab::new(),
-            rev_cells: HashMap::new(),
             rev_columns: HashMap::new(),
             head: None,
         }
     }
 
     pub fn load_table(&mut self, tb: &'a TableBuilder) -> usize {
-        let mut cell_map: HashMap<usize, usize> = HashMap::new();
-
-        for (cell_val, cell_id) in &tb.rev_cells {
-            cell_map.insert(*cell_id, self.insert_cell(&cell_val));
-        }
-
-        let empty_key = if self.rev_cells.contains_key(&String::from("")) {
-            self.rev_cells[&String::from("")]
-        } else {
-            self.insert_cell(&String::from(""))
-        };
+        let empty_key = self.insert_cell(&String::from(""));
 
         let mut cells = vec![empty_key; tb.row_cnt * tb.col_cnt];
 
         for (r, row) in tb.rows.iter().enumerate() {
             for (c, val) in row.iter().enumerate() {
-                if cell_map.contains_key(val) {
-                    cells[(r * tb.col_cnt) + c] = cell_map[val];
-                }
+                cells[(r * tb.col_cnt) + c] = self.insert_cell(&val.to_string());
             }
         }
 
@@ -75,18 +61,7 @@ impl<'a> Database<'a> {
     }
 
     pub fn insert_cell(&mut self, contents: &str) -> usize {
-        match self.rev_cell_lookup(contents) {
-            Some(key) => *key,
-            None => {
-                let key = self.cells.insert(contents.to_string());
-                self.rev_cells.insert(contents.to_string(), key);
-                key
-            }
-        }
-    }
-
-    pub fn rev_cell_lookup(&self, contents: &str) -> Option<&usize> {
-        self.rev_cells.get(contents)
+        self.cells.insert(contents.to_string())
     }
 
     pub fn current_table(&self) -> Option<&Table> {
@@ -122,7 +97,6 @@ impl<'a> Database<'a> {
 #[derive(Clone, Debug)]
 pub struct TableBuilder {
     cells: Slab<String>,
-    rev_cells: HashMap<String, usize>,
     rows: Vec<Vec<usize>>,
     cols: Vec<Column>,
     pub row_cnt: usize,
@@ -132,7 +106,6 @@ pub struct TableBuilder {
 impl TableBuilder {
     pub fn new() -> Self {
         let cells = Slab::new();
-        let rev_cells = HashMap::new();
         let rows = Vec::new();
         let cols = Vec::new();
         let row_cnt = 0;
@@ -140,7 +113,6 @@ impl TableBuilder {
 
         Self {
             cells,
-            rev_cells,
             rows,
             row_cnt,
             col_cnt,
@@ -160,13 +132,7 @@ impl TableBuilder {
                 self.cols[i].width = val.len();
             }
 
-            let key = if self.rev_cells.contains_key(&val) {
-                self.rev_cells[&val]
-            } else {
-                let key = self.cells.insert(val.clone());
-                self.rev_cells.insert(val, key);
-                key
-            };
+            let key = self.cells.insert(val.clone());
 
             new_row.push(key);
         }
@@ -249,19 +215,6 @@ mod test {
         assert_eq!(cell2, cell4); // no dupes
         assert_eq!(db.cells.len(), 3);
         assert_eq!(db.cells.len(), 3);
-    }
-
-    #[test]
-    fn test_database_rev_cell_lookup() {
-        let mut db = Database::new();
-        let cell1 = db.insert_cell(&String::from("a"));
-        let cell2 = db.insert_cell(&String::from("b"));
-
-        let result = db.rev_cell_lookup(&String::from("a"));
-        assert_eq!(&cell1, result.unwrap());
-
-        let result = db.rev_cell_lookup(&String::from("b"));
-        assert_eq!(&cell2, result.unwrap());
     }
 
     #[test]
