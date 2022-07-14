@@ -5,7 +5,6 @@ pub struct Database<'a> {
     cells: Slab<String>,
     tables: Slab<Table<'a>>,
     columns: Slab<Column>,
-    rev_columns: HashMap<Column, usize>,
     head: Option<usize>,
 }
 
@@ -15,7 +14,6 @@ impl<'a> Database<'a> {
             cells: Slab::new(),
             tables: Slab::new(),
             columns: Slab::new(),
-            rev_columns: HashMap::new(),
             head: None,
         }
     }
@@ -33,7 +31,6 @@ impl<'a> Database<'a> {
 
         let mut columns: Vec<&Column> = vec![];
         for col in tb.cols.iter() {
-            self.insert_col(col.clone());
             columns.push(col);
         }
 
@@ -43,21 +40,6 @@ impl<'a> Database<'a> {
             row_cnt: tb.row_cnt,
             col_cnt: tb.col_cnt,
         })
-    }
-
-    pub fn insert_col(&mut self, col: Column) -> usize {
-        match self.rev_col_lookup(&col) {
-            Some(key) => *key,
-            None => {
-                let key = self.columns.insert(col.clone());
-                self.rev_columns.insert(col, key);
-                key
-            }
-        }
-    }
-
-    pub fn rev_col_lookup(&self, col: &Column) -> Option<&usize> {
-        self.rev_columns.get(col)
     }
 
     pub fn insert_cell(&mut self, contents: &str) -> usize {
@@ -239,35 +221,6 @@ mod test {
             width: 10,
         });
         assert_eq!(key, 0);
-    }
-
-    #[test]
-    fn test_database_rev_col_lookup() {
-        let mut db = Database::new();
-
-        let key_a = db.insert_col(Column {
-            header: String::from("FNAME"),
-            width: 10,
-        });
-        let key_b = db.insert_col(Column {
-            header: String::from("LNAME"),
-            width: 10,
-        });
-
-        assert_eq!(
-            db.rev_col_lookup(&Column {
-                header: String::from("FNAME"),
-                width: 10
-            }),
-            Some(&key_a)
-        );
-        assert_eq!(
-            db.rev_col_lookup(&Column {
-                header: String::from("LNAME"),
-                width: 10
-            }),
-            Some(&key_b)
-        );
     }
 
     #[test]
