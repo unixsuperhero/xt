@@ -10,7 +10,7 @@ fn main() {
 
     let tb = match std::env::args().nth(1) {
         Some(file) => CsvLoader::from_path(&file),
-        None => CsvLoader::from_path(&"test/simple.csv"),
+        None => CsvLoader::from_path("test/simple.csv"),
     }
     .unwrap();
 

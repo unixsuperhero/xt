@@ -2,9 +2,9 @@ use crate::database::*;
 
 #[derive(Clone,Debug)]
 pub struct AppState<'a> {
-    cursor: Pos,
-    screen_area: Pos,
-    table: Table<'a>,
+    pub cursor: Pos,
+    pub screen_area: Pos,
+    pub table: Table<'a>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
